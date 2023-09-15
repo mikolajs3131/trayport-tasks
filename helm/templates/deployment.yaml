@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trayport-nginx
+  labels:
+    app: nginx
+    {{- include "trayport-nginx.labels" . | nindent 4 }}
+    {{ .Values.customLabels | toYaml | nindent 4 }}
+
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: nginx
+
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: {{ .Values.maxUnavailable }}
+
+  template:
+    metadata:
+      labels:
+        app: nginx
+        {{- include "trayport-nginx.labels" . | nindent 8 }}
+        {{ .Values.customLabels | toYaml | nindent 8 }}
+
+    spec:
+      containers:
+        - name: nginx
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          
+          ports:
+            - containerPort: {{ .Values.service.port }}
+
+          resources:
+            requests:
+              cpu: {{ .Values.qos.requests.cpu }}
+              memory: {{ .Values.qos.requests.memory }}
+            limits:
+              cpu: {{ .Values.qos.limits.cpu }}
+              memory: {{ .Values.qos.limits.memory }}
+
+          volumeMounts:
+            - name: nginx-conf
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: nginx-conf
+
+      affinity:
+        {{- if .Values.affinity.nodeAffinity.enabled }}
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: {{ .Values.affinity.nodeAffinity.nodeSelector.labelKey }}
+                    operator: In
+                    values:
+                      - {{ .Values.affinity.nodeAffinity.nodeSelector.labelValue }}
+        {{- end }}
+      
+        {{- if .Values.affinity.podAntiAffinity.enabled }}
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - nginx
+              topologyKey: "kubernetes.io/hostname"
+        {{- end }}

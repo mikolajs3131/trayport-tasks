@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-conf
+  labels:
+    app: nginx
+    {{- include "trayport-nginx.labels" . | nindent 4 }}
+    {{ toYaml .Values.customLabels | nindent 4 }}
+data:
+  nginx.conf: |
+    {{- $.Files.Get "config/nginx.conf" | nindent 4 -}}

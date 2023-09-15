@@ -1,0 +1,44 @@
+image:
+  repository: nginx
+  tag: stable
+  pullPolicy: IfNotPresent
+service:
+  type: ClusterIP
+  port: 80
+
+replicaCount: 2
+maxUnavailable: 1
+
+customLabels:
+  product: example-product-name
+  developmentTeam: example-team-name
+
+affinity:
+  nodeAffinity:
+    enabled: true
+    nodeSelector:
+      labelKey: dev_team
+      labelValue: circle
+  podAntiAffinity:
+    enabled: true
+
+qos:
+  requests:
+    cpu: 100m
+    memory: 200Mi
+  limits:
+    cpu: 200m
+    memory: 400Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 80
+  scaleUp:
+    stabilizationWindowSeconds: 600
+  scaleDown:
+    stabilizationWindowSeconds: 600
+
+serviceAccount:
+  create: true
